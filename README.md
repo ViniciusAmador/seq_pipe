@@ -1,2 +1,1 @@
-# seq_pipe
-Download de bancos de dados e pré-tratamento por deduplicação.
+Em andamento está um pipeline end-to-end cuja orientação é trabalhar com sequências primárias.
