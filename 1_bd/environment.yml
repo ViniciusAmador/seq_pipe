@@ -1,0 +1,16 @@
+name: seq-pipe-1bd
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.11
+  - ncbi-datasets-cli
+  - snakemake-minimal
+  - biopython
+  - pyyaml
+  - rich
+  - pandas
+  - plotly
+  - matplotlib
+  - python-dotenv

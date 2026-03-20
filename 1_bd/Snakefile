@@ -1,0 +1,128 @@
+configfile: "api_ncbi/config.yaml"
+
+from pathlib import Path
+
+
+ROOT = Path(workflow.basedir).resolve()
+
+
+def _p(path_str):
+    path = Path(path_str)
+    if path.is_absolute():
+        return str(path)
+    return str((ROOT / path).resolve())
+
+
+OUTPUT_BASE = _p(str(Path("api_ncbi") / config.get("output", {}).get("base_dir", "outputs")))
+META_DIR = str(Path(OUTPUT_BASE) / "metadata")
+RAW_CSV = str(Path(META_DIR) / "assemblies.csv")
+TREATED_CSV = str(Path(META_DIR) / "assemblies_tratados.csv")
+FAILED_CSV = str(Path(META_DIR) / "failed_assemblies.csv")
+DONE_FLAG = str(Path(META_DIR) / ".job_done")
+DEDUP_SUMMARY = str(Path(META_DIR) / "dedup_summary.csv")
+DEDUP_PNG = str(Path(META_DIR) / "dedup_story_before.png")
+UPSET_PNG = str(Path(META_DIR) / "dedup_upset_before.png")
+MAP_HTML = str(Path(META_DIR) / "mapa_projetos.html")
+FETCH_SCRIPT = _p("api_ncbi/pipeline/run_taxon_job.py")
+ANALYSIS_SCRIPT = _p("api_ncbi/pipeline/analysis.py")
+GRAPH_SCRIPT = _p("api_ncbi/pipeline/dedup_graph.py")
+MAP_SCRIPT = _p("api_ncbi/pipeline/map.py")
+CONFIG_PATH = _p("api_ncbi/config.yaml")
+GRAPH_OUTDIR = str(Path(META_DIR))
+
+
+rule all:
+    input:
+        DONE_FLAG,
+        RAW_CSV,
+        FAILED_CSV,
+        TREATED_CSV,
+        DEDUP_SUMMARY,
+        DEDUP_PNG,
+        UPSET_PNG,
+        MAP_HTML,
+
+
+rule fetch:
+    input:
+        FETCH_SCRIPT,
+        CONFIG_PATH,
+    output:
+        DONE_FLAG,
+        RAW_CSV,
+        FAILED_CSV,
+    shell:
+        r"""
+        set -euo pipefail
+        python3 "{input[0]}" "{input[1]}"
+        """
+
+
+rule dedup:
+    input:
+        RAW_CSV,
+        ANALYSIS_SCRIPT,
+    output:
+        TREATED_CSV,
+    shell:
+        r"""
+        set -euo pipefail
+        python3 "{input[1]}" --input "{input[0]}" --output "{output}"
+        """
+
+
+rule dedup_graphs:
+    input:
+        RAW_CSV,
+        GRAPH_SCRIPT,
+    output:
+        DEDUP_SUMMARY,
+        DEDUP_PNG,
+        UPSET_PNG,
+    params:
+        outdir=GRAPH_OUTDIR,
+    shell:
+        r"""
+        set -euo pipefail
+        python3 "{input[1]}" --input "{input[0]}" --outdir "{params.outdir}"
+        """
+
+
+rule project_map:
+    input:
+        TREATED_CSV,
+        MAP_SCRIPT,
+    output:
+        MAP_HTML,
+    shell:
+        r"""
+        set -euo pipefail
+        python3 "{input[1]}" --input "{input[0]}" --output "{output}"
+        """
+
+
+rule stage_fetch:
+    input:
+        DONE_FLAG,
+        RAW_CSV,
+        FAILED_CSV,
+
+
+rule stage_dedup:
+    input:
+        TREATED_CSV,
+
+
+rule stage_graphs:
+    input:
+        DEDUP_SUMMARY,
+        DEDUP_PNG,
+        UPSET_PNG,
+
+
+rule stage_map:
+    input:
+        MAP_HTML,
+
+
+

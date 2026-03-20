@@ -1,0 +1,12 @@
+query:
+  mode: taxon
+  value: Paracidovorax
+request_name: paracidovorax
+output:
+  base_dir: outputs
+run:
+  retries: 3
+  retry_backoff_seconds: 5
+  strict: false
+local_metrics:
+  enable: true
